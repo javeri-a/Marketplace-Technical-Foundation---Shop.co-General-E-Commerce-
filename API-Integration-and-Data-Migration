@@ -1,0 +1,193 @@
+Shop.co: API to Sanity Integration and Frontend Display
+This documentation explains the step-by-step process of how I integrated API data into Sanity, fetched the data from Sanity in Next.js, and displayed it on the frontend.
+
+1. Importing Data from API to Sanity
+I used a script to fetch data from an external API and import it into Sanity CMS. Here’s the breakdown of the steps:
+
+a. Setting Up Sanity Client
+To interact with Sanity, I created a client using @sanity/client. The configuration included my project ID, dataset, and API token.
+
+javascript
+Copy
+Edit
+import { createClient } from '@sanity/client';
+
+const client = createClient({
+  projectId: process.env.NEXT_PUBLIC_SANITY_PROJECT_ID,
+  dataset: process.env.NEXT_PUBLIC_SANITY_DATASET,
+  useCdn: false,
+  token: process.env.SANITY_API_TOKEN,
+  apiVersion: '2021-08-31',
+});
+
+export default client;
+b. Uploading Images to Sanity
+I used the Sanity asset API to upload product images fetched from the external API. Each image was fetched using Axios and then uploaded as a Sanity asset.
+
+javascript
+Copy
+Edit
+async function uploadImageToSanity(imageUrl) {
+  const response = await axios.get(imageUrl, { responseType: 'arraybuffer' });
+  const buffer = Buffer.from(response.data);
+  const asset = await client.assets.upload('image', buffer, {
+    filename: imageUrl.split('/').pop(),
+  });
+  return asset._id; // Returns the asset reference for the image
+}
+c. Importing Products Data
+The data fetched from the external API was mapped to Sanity’s schema format. Each product was processed, and its corresponding image was uploaded. The product data was then uploaded to Sanity using the create method.
+
+javascript
+Copy
+Edit
+async function importData() {
+  const response = await axios.get('https://template1-neon-nu.vercel.app/api/products');
+  const products = response.data;
+
+  for (const product of products) {
+    const imageRef = product.image ? await uploadImageToSanity(product.image) : null;
+
+    const sanityProduct = {
+      _type: 'products',
+      name: product.title,
+      price: product.price,
+      description: product.description,
+      image: imageRef ? { _type: 'image', asset: { _type: 'reference', _ref: imageRef } } : undefined,
+      category: product.category || '',
+      discountPercent: 0,
+      new: false,
+      colors: [],
+      sizes: [],
+    };
+
+    await client.create(sanityProduct);
+  }
+}
+The script was linked to a custom npm command in package.json for easy execution:
+
+json
+Copy
+Edit
+"scripts": {
+  "import-data": "node scripts/importSanityData.mjs"
+}
+2. Sanity Schema Setup
+To store the imported product data in Sanity, I created a schema named products. It includes fields for name, price, description, image, category, discount percentage, and more.
+
+javascript
+Copy
+Edit
+export default defineType({
+  name: 'products',
+  title: 'Products',
+  type: 'document',
+  fields: [
+    { name: 'name', title: 'Name', type: 'string' },
+    { name: 'price', title: 'Price', type: 'number' },
+    { name: 'description', title: 'Description', type: 'text' },
+    { name: 'image', title: 'Image', type: 'image' },
+    {
+      name: 'category',
+      title: 'Category',
+      type: 'string',
+      options: {
+        list: [
+          { title: 'T-Shirt', value: 'tshirt' },
+          { title: 'Short', value: 'short' },
+          { title: 'Jeans', value: 'jeans' },
+          { title: 'Hoodie', value: 'hoodie' },
+          { title: 'Shirt', value: 'shirt' },
+        ],
+      },
+    },
+    { name: 'discountPercent', title: 'Discount Percent', type: 'number' },
+    { name: 'new', title: 'New', type: 'boolean' },
+    { name: 'colors', title: 'Colors', type: 'array', of: [{ type: 'string' }] },
+    { name: 'sizes', title: 'Sizes', type: 'array', of: [{ type: 'string' }] },
+  ],
+});
+3. Fetching Data from Sanity in Next.js
+After importing the data into Sanity, I fetched it into my Next.js application using GROQ queries.
+
+a. GROQ Query
+The query fetched all products from the products document.
+
+javascript
+Copy
+Edit
+import client from '../sanityClient';
+
+export async function fetchProducts() {
+  const query = `
+    *[_type == "products"]{
+      _id,
+      name,
+      price,
+      description,
+      "imageUrl": image.asset->url,
+      category,
+      discountPercent,
+      new
+    }
+  `;
+  const products = await client.fetch(query);
+  return products;
+}
+b. Displaying Products on the Frontend
+The fetched data was displayed on the frontend using a grid layout. I used the next/image component to display images from Sanity.
+
+javascript
+Copy
+Edit
+import { fetchProducts } from './api/products';
+import Image from 'next/image';
+
+export default async function HomePage() {
+  const products = await fetchProducts();
+
+  return (
+    <div>
+      <h1>Shop.co Products</h1>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        {products.map((product) => (
+          <div key={product._id} className="border p-4">
+            <Image src={product.imageUrl} alt={product.name} width={300} height={300} />
+            <h2>{product.name}</h2>
+            <p>${product.price}</p>
+            <p>{product.category}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+4. Image Configuration in Next.js
+To load external images from Sanity, I configured next.config.js:
+
+javascript
+Copy
+Edit
+module.exports = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'cdn.sanity.io',
+        pathname: '/images/**',
+      },
+    ],
+  },
+};
+5. Environment Variables
+The sensitive data such as Sanity project ID, dataset, and API token were stored in a .env.local file:
+
+makefile
+Copy
+Edit
+NEXT_PUBLIC_SANITY_PROJECT_ID=your_project_id
+NEXT_PUBLIC_SANITY_DATASET=production
+SANITY_API_TOKEN=your_sanity_api_token
+Summary
+API Data Imported to Sanity: I fetched data from an API, uploaded images to Sanity, and stored product details in a structured schema.
+Sanity Data to Frontend: Using GROQ queries, I fetched product data into a Next.js app and displayed it using Tailwind CSS for styling.
