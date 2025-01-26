@@ -13,6 +13,11 @@ System Architecture:
  
 [day-3-images (1).pdf](https://github.com/user-attachments/files/18464366/day-3-images.1.pdf)
 
+Day 04:Day 4_Dynamic Frontend Components
+
+[Uploading Day 4_Dynamic Frontend Components-SHOP.pdf…]()
+
+
 
 Performance Report   [Report.pdf](https://github.com/user-attachments/files/18500954/Report.pdf)
 
