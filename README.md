@@ -1,9 +1,10 @@
 # Marketplace-Technical-Foundation---Shop.co-General-E-Commerce-
 
 
-
+Day 01
 [Marketplace Technical Foundation - Shop.pdf](https://github.com/user-attachments/files/18443576/Marketplace.Technical.Foundation.-.Shop.pdf)
 
+Day 02
 System Architecture:
 [System Architecture (1).pdf](https://github.com/user-attachments/files/18449194/System.Architecture.1.pdf)
 
@@ -23,4 +24,5 @@ Performance Report   [Report.pdf](https://github.com/user-attachments/files/1850
 
 Repo Link   https://github.com/javeri-a/shop.co.git
 CSV format  [Test Report.pdf](https://github.com/user-attachments/files/18520529/Test.Report.pdf)
-https://marketplace-shopco.vercel.app/
+
+Vercel Link:     https://marketplace-shopco.vercel.app/
